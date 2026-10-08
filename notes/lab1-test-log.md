@@ -25,3 +25,12 @@
 
 ### Bug #2：（继续测试后补充）
 
+
+## 三、Bug 修复流程（Lab 1 P10–P17）
+
+- 工具：Codespaces + GitHub Copilot（Agent 模式）
+- 流程：在 Dev 分支修复 → 提交 → 推送 → 发起 Pull Request → 合并至 main
+- 改动文件：src/static/index.html（+4 行）
+- 修复内容：新建笔记时隐藏 Delete 按钮；打开已有笔记时显示；保存成功后恢复显示
+- 验证结果：三条测试全部通过
+
