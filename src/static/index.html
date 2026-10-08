@@ -448,6 +448,7 @@
 
                 this.currentNote = note;
                 this.showEditor();
+                document.getElementById('deleteBtn').style.display = '';
                 this.renderNotesList(); // Re-render to update active state
                 
                 document.getElementById('noteTitle').value = note.title || '';
@@ -465,6 +466,7 @@
                 };
                 
                 this.showEditor();
+                document.getElementById('deleteBtn').style.display = 'none';
                 document.getElementById('noteTitle').value = '';
                 document.getElementById('noteContent').value = '';
                 document.getElementById('editorTitle').textContent = 'New Note';
@@ -486,6 +488,7 @@
                 document.getElementById('emptyState').style.display = 'block';
                 document.getElementById('editorForm').style.display = 'none';
                 document.getElementById('editorActions').style.display = 'none';
+                document.getElementById('deleteBtn').style.display = 'none';
                 document.getElementById('editorTitle').textContent = 'Select a note to edit';
                 this.currentNote = null;
             }
@@ -530,6 +533,7 @@
 
                     const savedNote = await response.json();
                     this.currentNote = savedNote;
+                    document.getElementById('deleteBtn').style.display = '';
                     
                     // Update notes list
                     const existingIndex = this.notes.findIndex(n => n.id === savedNote.id);
