@@ -8,7 +8,12 @@ from openai import OpenAI, OpenAIError
 
 translation_bp = Blueprint('translation', __name__)
 ROOT_DIR = Path(__file__).resolve().parents[2]
-PROMPT_PATH = ROOT_DIR / 'prompts' / 'translate_prompt.md'
+PROMPT_PATH = os.path.abspath(os.path.join(
+    os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+    '..',
+    'prompts',
+    'translate_prompt.md',
+))
 MODEL = 'nvidia/nemotron-3-super-120b-a12b:free'
 
 
@@ -27,14 +32,14 @@ def translate():
         return jsonify({'error': 'Target language is required'}), 400
 
     load_dotenv(ROOT_DIR / '.env')
-    api_key = os.environ.get('OPENROUTER_API_KEY')
+    api_key = os.getenv('OPENROUTER_API_KEY')
     if not api_key:
         return jsonify({'error': 'Translation service is not configured'}), 503
 
-    try:
-        prompt_template = PROMPT_PATH.read_text(encoding='utf-8')
-    except OSError:
-        return jsonify({'error': 'Translation prompt file is unavailable'}), 500
+    if not os.path.isfile(PROMPT_PATH):
+        raise FileNotFoundError(f'Translation prompt file not found: {PROMPT_PATH}')
+    with open(PROMPT_PATH, encoding='utf-8') as prompt_file:
+        prompt_template = prompt_file.read()
 
     system_prompt = prompt_template.replace(
         '{{target_language}}', target_language.strip()
