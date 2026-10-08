@@ -200,6 +200,46 @@
             transform: translateY(-1px);
         }
 
+        .translation-controls {
+            display: flex;
+            gap: 10px;
+        }
+
+        .translation-controls .form-input {
+            flex: 1;
+        }
+
+        .btn-translate,
+        .btn-use-translation {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-translate:hover,
+        .btn-use-translation:hover {
+            background: #5a6fd8;
+        }
+
+        .btn:disabled {
+            cursor: wait;
+            opacity: 0.65;
+        }
+
+        .translation-result {
+            display: none;
+            white-space: pre-wrap;
+            overflow-wrap: anywhere;
+            padding: 15px;
+            border: 1px solid #e1e5e9;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            background: #f8f9fa;
+        }
+
+        .translation-result p {
+            margin-bottom: 12px;
+        }
+
         .form-group {
             margin-bottom: 20px;
         }
@@ -361,6 +401,18 @@
                         <label class="form-label" for="noteContent">Content</label>
                         <textarea class="form-textarea" id="noteContent" placeholder="Start writing your note..."></textarea>
                     </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="translationLanguage">Translate into</label>
+                        <div class="translation-controls">
+                            <input type="text" class="form-input" id="translationLanguage" placeholder="e.g. Spanish">
+                            <button class="btn btn-translate" id="translateBtn">Translate</button>
+                        </div>
+                    </div>
+                    <div class="translation-result" id="translationResult" aria-live="polite">
+                        <p id="translatedText"></p>
+                        <button class="btn btn-use-translation" id="useTranslationBtn">Replace note content</button>
+                    </div>
                 </div>
 
                 <div class="empty-state" id="emptyState">
@@ -389,6 +441,8 @@
                 document.getElementById('newNoteBtn').addEventListener('click', () => this.createNewNote());
                 document.getElementById('saveBtn').addEventListener('click', () => this.saveNote());
                 document.getElementById('deleteBtn').addEventListener('click', () => this.deleteNote());
+                document.getElementById('translateBtn').addEventListener('click', () => this.translateNote());
+                document.getElementById('useTranslationBtn').addEventListener('click', () => this.useTranslation());
                 document.getElementById('searchBox').addEventListener('input', (e) => this.searchNotes(e.target.value));
                 
                 // Auto-save on content change (debounced)
@@ -446,6 +500,7 @@
                 const note = this.notes.find(n => n.id === noteId);
                 if (!note) return;
 
+                this.clearTranslationResult();
                 this.currentNote = note;
                 this.showEditor();
                 document.getElementById('deleteBtn').style.display = '';
@@ -457,6 +512,7 @@
             }
 
             createNewNote() {
+                this.clearTranslationResult();
                 this.currentNote = {
                     id: null,
                     title: '',
@@ -485,12 +541,63 @@
             }
 
             hideEditor() {
+                this.clearTranslationResult();
                 document.getElementById('emptyState').style.display = 'block';
                 document.getElementById('editorForm').style.display = 'none';
                 document.getElementById('editorActions').style.display = 'none';
                 document.getElementById('deleteBtn').style.display = 'none';
                 document.getElementById('editorTitle').textContent = 'Select a note to edit';
                 this.currentNote = null;
+            }
+
+            async translateNote() {
+                const text = document.getElementById('noteContent').value;
+                const targetLanguage = document.getElementById('translationLanguage').value.trim();
+                if (!text.trim() || !targetLanguage) {
+                    this.showMessage('Enter note content and a target language to translate.', 'error');
+                    return;
+                }
+
+                const button = document.getElementById('translateBtn');
+                button.disabled = true;
+                button.textContent = 'Translating...';
+                this.clearTranslationResult();
+                try {
+                    const response = await fetch('/api/translate', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ text, target_language: targetLanguage })
+                    });
+                    const result = await response.json();
+                    if (!response.ok) {
+                        throw new Error(result.error || 'Translation failed');
+                    }
+
+                    document.getElementById('translatedText').textContent = result.translated_text;
+                    document.getElementById('translationResult').style.display = 'block';
+                    this.hideMessage();
+                } catch (error) {
+                    this.showMessage(`Error translating note: ${error.message}`, 'error');
+                } finally {
+                    button.disabled = false;
+                    button.textContent = 'Translate';
+                }
+            }
+
+            useTranslation() {
+                const translatedText = document.getElementById('translatedText').textContent;
+                if (!translatedText) return;
+
+                const content = document.getElementById('noteContent');
+                content.value = translatedText;
+                content.dispatchEvent(new Event('input', { bubbles: true }));
+                this.clearTranslationResult();
+                this.showMessage('Translation inserted into the note.', 'success');
+            }
+
+            clearTranslationResult() {
+                document.getElementById('translationResult').style.display = 'none';
+                document.getElementById('translatedText').textContent = '';
             }
 
             async saveNote(isAutoSave = false) {
@@ -641,4 +748,3 @@
     </script>
 </body>
 </html>
-
